@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "@ai-sdk/google": "^3.0.6",
+    "@supabase/ssr": "^0.8.0",
+    "@supabase/supabase-js": "^2.90.1",
+    "ai": "^6.0.23",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.562.0",
+    "tailwind-merge": "^3.4.0"
+  }
+}
