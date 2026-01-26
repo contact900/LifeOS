@@ -33,12 +33,15 @@ import {
   Calendar,
   Flag,
   Filter,
+  Plug,
+  Sparkles,
 } from 'lucide-react'
 import Link from 'next/link'
 import { TagManager } from '@/components/tags/tag-manager'
 import { TaskTagsPreview } from '@/components/tags/task-tags-preview'
 import { TagFilter } from '@/components/tags/tag-filter'
 import { GlobalSearch } from '@/components/search/global-search'
+import { ReminderNotificationProvider } from '@/components/reminders/reminder-notification-provider'
 
 interface Task {
   id: string
@@ -297,6 +300,30 @@ export default function TasksPage() {
               <Button variant="default" className="w-full justify-start">
                 <CheckSquare className="mr-2 h-4 w-4" />
                 Tasks
+              </Button>
+            </Link>
+            <Link href="/reminders">
+              <Button variant="ghost" className="w-full justify-start">
+                <Bell className="mr-2 h-4 w-4" />
+                Reminders
+              </Button>
+            </Link>
+            <Link href="/calendar">
+              <Button variant="ghost" className="w-full justify-start">
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                Calendar
+              </Button>
+            </Link>
+            <Link href="/integrations">
+              <Button variant="ghost" className="w-full justify-start">
+                <Plug className="mr-2 h-4 w-4" />
+                Integrations
+              </Button>
+            </Link>
+            <Link href="/insights">
+              <Button variant="ghost" className="w-full justify-start">
+                <Sparkles className="mr-2 h-4 w-4" />
+                Insights
               </Button>
             </Link>
             <Link href="/admin">

@@ -3,7 +3,7 @@
 import { Sidebar, SidebarHeader, SidebarContent, SidebarFooter } from '@/components/ui/sidebar'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { MessageSquare, FileText, Mic, Database, CheckSquare, Tag, FileStack } from 'lucide-react'
+import { MessageSquare, FileText, Mic, Database, CheckSquare, Tag, FileStack, Bell, Calendar as CalendarIcon, Target, Plug, Sparkles } from 'lucide-react'
 import { GlobalSearch } from '@/components/search/global-search'
 import Link from 'next/link'
 import { DashboardStats } from '@/components/admin/dashboard-stats'
@@ -13,6 +13,10 @@ import { RecordingsManager } from '@/components/admin/recordings-manager'
 import { TasksManager } from '@/components/admin/tasks-manager'
 import { TagsManager } from '@/components/admin/tags-manager'
 import { TemplateManager } from '@/components/templates/template-manager'
+import { ReminderManager } from '@/components/reminders/reminder-manager'
+import { ReminderNotificationProvider } from '@/components/reminders/reminder-notification-provider'
+import { EventsManager } from '@/components/admin/events-manager'
+import { GoalsManager } from '@/components/admin/goals-manager'
 
 export default function AdminPage() {
   return (
@@ -49,6 +53,18 @@ export default function AdminPage() {
               <Button variant="ghost" className="w-full justify-start">
                 <CheckSquare className="mr-2 h-4 w-4" />
                 Tasks
+              </Button>
+            </Link>
+            <Link href="/integrations">
+              <Button variant="ghost" className="w-full justify-start">
+                <Plug className="mr-2 h-4 w-4" />
+                Integrations
+              </Button>
+            </Link>
+            <Link href="/insights">
+              <Button variant="ghost" className="w-full justify-start">
+                <Sparkles className="mr-2 h-4 w-4" />
+                Insights
               </Button>
             </Link>
             <Link href="/admin">
@@ -103,6 +119,14 @@ export default function AdminPage() {
                 <FileStack className="mr-2 h-4 w-4" />
                 Templates
               </TabsTrigger>
+              <TabsTrigger value="reminders">
+                <Bell className="mr-2 h-4 w-4" />
+                Reminders
+              </TabsTrigger>
+              <TabsTrigger value="events">
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                Events
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="memories">
@@ -127,7 +151,17 @@ export default function AdminPage() {
             <TabsContent value="templates">
               <TemplateManager />
             </TabsContent>
+            <TabsContent value="reminders">
+              <ReminderManager />
+            </TabsContent>
+            <TabsContent value="events">
+              <EventsManager />
+            </TabsContent>
+            <TabsContent value="goals">
+              <GoalsManager />
+            </TabsContent>
           </Tabs>
+          <ReminderNotificationProvider />
         </div>
       </main>
     </div>

@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Sidebar, SidebarHeader, SidebarContent, SidebarFooter } from '@/components/ui/sidebar'
-import { MessageSquare, FileText, Mic, Play, Trash2, Database, CheckSquare } from 'lucide-react'
+import { MessageSquare, FileText, Mic, Play, Trash2, Database, CheckSquare, Bell, Calendar as CalendarIcon, Target, Plug, Sparkles } from 'lucide-react'
+import { FavoriteButton } from '@/components/favorites/favorite-button'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { TagManager } from '@/components/tags/tag-manager'
@@ -15,6 +16,7 @@ import { TagFilter } from '@/components/tags/tag-filter'
 import { GlobalSearch } from '@/components/search/global-search'
 import { TemplateSelector } from '@/components/templates/template-selector'
 import { QuickTemplateButtons } from '@/components/templates/quick-template-buttons'
+import { ReminderNotificationProvider } from '@/components/reminders/reminder-notification-provider'
 
 interface Recording {
   id: string
@@ -175,6 +177,24 @@ export default function RecordingsPage() {
                 Tasks
               </Button>
             </Link>
+            <Link href="/reminders">
+              <Button variant="ghost" className="w-full justify-start">
+                <Bell className="mr-2 h-4 w-4" />
+                Reminders
+              </Button>
+            </Link>
+            <Link href="/integrations">
+              <Button variant="ghost" className="w-full justify-start">
+                <Plug className="mr-2 h-4 w-4" />
+                Integrations
+              </Button>
+            </Link>
+            <Link href="/insights">
+              <Button variant="ghost" className="w-full justify-start">
+                <Sparkles className="mr-2 h-4 w-4" />
+                Insights
+              </Button>
+            </Link>
             <Link href="/admin">
               <Button variant="ghost" className="w-full justify-start">
                 <Database className="mr-2 h-4 w-4" />
@@ -189,6 +209,7 @@ export default function RecordingsPage() {
           </p>
         </SidebarFooter>
       </Sidebar>
+      <ReminderNotificationProvider />
       <div className="flex-1 flex flex-col">
         <div className="border-b p-4">
           <div className="flex items-center justify-between mb-2">
@@ -259,20 +280,27 @@ export default function RecordingsPage() {
                   >
                     <CardHeader className="p-3">
                       <div className="flex items-start justify-between">
-                        <CardTitle className="text-sm font-medium line-clamp-2">
+                        <CardTitle className="text-sm font-medium line-clamp-2 flex-1">
                           {new Date(recording.created_at).toLocaleString()}
                         </CardTitle>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleDeleteRecording(recording.id)
-                          }}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
+                        <div className="flex items-center gap-1 ml-2">
+                          <FavoriteButton
+                            itemType="recording"
+                            itemId={recording.id}
+                            className="h-6"
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDeleteRecording(recording.id)
+                            }}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
                       {recording.summary && (
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
@@ -292,9 +320,14 @@ export default function RecordingsPage() {
             {selectedRecording ? (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-semibold">
+                  <h3 className="text-xl font-semibold flex-1">
                     {new Date(selectedRecording.created_at).toLocaleString()}
                   </h3>
+                  <FavoriteButton
+                    itemType="recording"
+                    itemId={selectedRecording.id}
+                    showPin={true}
+                  />
                 </div>
                 <TagManager
                   resourceType="recording"
