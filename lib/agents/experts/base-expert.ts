@@ -5,6 +5,18 @@ import {
   searchRecordings,
   RecordingSearchResult,
 } from '@/lib/agents/tools/recordings-search'
+import {
+  searchTasks,
+  getAllTasks,
+  createTask,
+  updateTask,
+  TaskSearchResult,
+} from '@/lib/agents/tools/tasks-search'
+import {
+  suggestTags,
+  getOrCreateTag,
+  TagSuggestion,
+} from '@/lib/agents/tools/tag-suggestions'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -121,6 +133,63 @@ export abstract class BaseExpert {
   }
 
   /**
+   * Search tasks by query
+   */
+  protected async searchUserTasks(
+    userId: string,
+    query: string,
+    limit: number = 10,
+    status?: 'todo' | 'in_progress' | 'done',
+    category?: 'finance' | 'work' | 'health' | 'general'
+  ): Promise<TaskSearchResult[]> {
+    return await searchTasks(userId, query, limit, status, category)
+  }
+
+  /**
+   * Get all tasks for user
+   */
+  protected async getUserTasks(
+    userId: string,
+    status?: 'todo' | 'in_progress' | 'done',
+    category?: 'finance' | 'work' | 'health' | 'general'
+  ): Promise<TaskSearchResult[]> {
+    return await getAllTasks(userId, status, category)
+  }
+
+  /**
+   * Create a task
+   */
+  protected async createUserTask(
+    userId: string,
+    title: string,
+    description?: string,
+    status: 'todo' | 'in_progress' | 'done' = 'todo',
+    priority: 'low' | 'medium' | 'high' = 'medium',
+    category: 'finance' | 'work' | 'health' | 'general' = 'general',
+    dueDate?: string
+  ): Promise<TaskSearchResult | null> {
+    return await createTask(userId, title, description, status, priority, category, dueDate)
+  }
+
+  /**
+   * Update a task
+   */
+  protected async updateUserTask(
+    userId: string,
+    taskId: string,
+    updates: {
+      title?: string
+      description?: string
+      status?: 'todo' | 'in_progress' | 'done'
+      priority?: 'low' | 'medium' | 'high'
+      category?: 'finance' | 'work' | 'health' | 'general'
+      dueDate?: string | null
+    }
+  ): Promise<TaskSearchResult | null> {
+    return await updateTask(userId, taskId, updates)
+  }
+
+  /**
    * Format notes as context string
    */
   protected formatNotesContext(notes: NoteSearchResult[]): string {
@@ -161,6 +230,48 @@ export abstract class BaseExpert {
   }
 
   /**
+   * Format tasks as context string
+   */
+  protected formatTasksContext(tasks: TaskSearchResult[]): string {
+    if (tasks.length === 0) {
+      return 'No relevant tasks found.'
+    }
+
+    return (
+      `Relevant tasks found:\n\n` +
+      tasks
+        .map(
+          (task, idx) =>
+            `[Task ${idx + 1}: "${task.title}"]\nStatus: ${task.status}\nPriority: ${task.priority}\nCategory: ${task.category}${task.description ? `\nDescription: ${task.description.substring(0, 200)}${task.description.length > 200 ? '...' : ''}` : ''}${task.due_date ? `\nDue: ${new Date(task.due_date).toLocaleDateString()}` : ''}\nCreated: ${new Date(task.created_at).toLocaleDateString()}`
+        )
+        .join('\n\n')
+    )
+  }
+
+  /**
+   * Suggest tags for content
+   */
+  protected async suggestTagsForContent(
+    userId: string,
+    content: string,
+    resourceType: 'note' | 'recording' | 'task',
+    existingTagNames: string[] = []
+  ): Promise<TagSuggestion[]> {
+    return await suggestTags(userId, content, resourceType, existingTagNames)
+  }
+
+  /**
+   * Get or create a tag
+   */
+  protected async getOrCreateUserTag(
+    userId: string,
+    tagName: string,
+    color: string
+  ): Promise<string | null> {
+    return await getOrCreateTag(userId, tagName, color)
+  }
+
+  /**
    * Generate response using GPT-4o with retrieved memories as context
    */
   async generateResponse(
@@ -181,6 +292,18 @@ export abstract class BaseExpert {
       userMessage.toLowerCase().includes('recording') ||
       userMessage.toLowerCase().includes('recorded') ||
       userMessage.toLowerCase().includes('said')
+    
+    const isAskingAboutTasks =
+      userMessage.toLowerCase().includes('task') ||
+      userMessage.toLowerCase().includes('todo') ||
+      userMessage.toLowerCase().includes('remind') ||
+      userMessage.toLowerCase().includes('reminder') ||
+      userMessage.toLowerCase().includes('due') ||
+      userMessage.toLowerCase().includes('what do i need to do') ||
+      userMessage.toLowerCase().includes('what should i do') ||
+      userMessage.toLowerCase().includes('create a task') ||
+      userMessage.toLowerCase().includes('add a task') ||
+      userMessage.toLowerCase().includes('make a task')
     
     // For notes queries, use the full message or extract meaningful terms
     let notesSearchQuery = userMessage
@@ -274,24 +397,55 @@ export abstract class BaseExpert {
       console.error(`[${this.expertName}] Error searching recordings:`, error)
     }
 
+    // Always search tasks - especially if user is asking about them
+    let tasksFound: TaskSearchResult[] = []
+    let tasksContext = ''
+    try {
+      if (isAskingAboutTasks) {
+        // If asking about tasks, get all tasks or search by query
+        const tasksSearchQuery = userMessage.toLowerCase().includes('all') || 
+                                 userMessage.toLowerCase().includes('list') ||
+                                 userMessage.toLowerCase().includes('show')
+          ? '' // Empty query to get all tasks
+          : userMessage
+        
+        tasksFound = await this.searchUserTasks(userId, tasksSearchQuery, 10)
+        console.log(`[${this.expertName}] Found ${tasksFound.length} tasks for query: "${tasksSearchQuery}"`)
+      } else {
+        // For general queries, still search tasks to give AI context
+        tasksFound = await this.searchUserTasks(userId, userMessage, 5)
+      }
+      
+      if (tasksFound.length > 0) {
+        tasksContext = this.formatTasksContext(tasksFound)
+        console.log(`[${this.expertName}] Tasks context length: ${tasksContext.length} chars`)
+      }
+    } catch (error) {
+      console.error(`[${this.expertName}] Error searching tasks:`, error)
+    }
+
     // Build system context
     let systemContext = `${this.systemPrompt}\n\n${memoriesContext}`
     
-    // Always include notes and recordings context if found
+    // Always include notes, recordings, and tasks context if found
     if (notesContext && notesContext !== 'No relevant notes found.') {
       systemContext += `\n\n${notesContext}`
     }
     if (recordingsContext && recordingsContext !== 'No relevant recordings found.') {
       systemContext += `\n\n${recordingsContext}`
     }
+    if (tasksContext && tasksContext !== 'No relevant tasks found.') {
+      systemContext += `\n\n${tasksContext}`
+    }
 
-    // Add clear instructions about accessing notes and recordings
+    // Add clear instructions about accessing notes, recordings, and tasks
     const hasNotes = notesContext && notesContext !== 'No relevant notes found.' && notesFound.length > 0
     const hasRecordings = recordingsContext && recordingsContext !== 'No relevant recordings found.' && recordingsFound.length > 0
+    const hasTasks = tasksContext && tasksContext !== 'No relevant tasks found.' && tasksFound.length > 0
     
-    if (hasNotes || hasRecordings) {
+    if (hasNotes || hasRecordings || hasTasks) {
       systemContext += `\n\n═══════════════════════════════════════════════════════════════
-🚨 CRITICAL: YOU HAVE DIRECT ACCESS TO USER'S NOTES/RECORDINGS 🚨
+🚨 CRITICAL: YOU HAVE DIRECT ACCESS TO USER'S DATA 🚨
 ═══════════════════════════════════════════════════════════════
 
 ${hasNotes ? `✅ NOTES FOUND: You have access to ${notesFound.length} note(s) from the user.
@@ -305,9 +459,33 @@ ${hasRecordings ? `✅ RECORDINGS FOUND: You have access to ${recordingsFound.le
    The recordings are shown above in the "Relevant recordings found:" section.
    You MUST read and reference these recordings when answering questions.
    ` : ''}
+${hasTasks ? `✅ TASKS FOUND: You have access to ${tasksFound.length} task(s) from the user.
+   The tasks are shown above in the "Relevant tasks found:" section.
+   You can reference these tasks when answering questions.
+   
+   TASK MANAGEMENT CAPABILITIES:
+   - You can CREATE tasks using: createUserTask(userId, title, description?, status?, priority?, category?, dueDate?)
+   - status: 'todo' | 'in_progress' | 'done' (default: 'todo')
+   - priority: 'low' | 'medium' | 'high' (default: 'medium')
+   - category: 'finance' | 'work' | 'health' | 'general' (default: 'general')
+   - dueDate: ISO date string (optional)
+   
+   - You can UPDATE tasks using: updateUserTask(userId, taskId, { title?, description?, status?, priority?, category?, dueDate? })
+   - You can LIST tasks using: getUserTasks(userId, status?, category?)
+   
+   When the user asks to create a task, reminder, or todo, you MUST use createUserTask().
+   When the user asks about their tasks, reference the tasks shown above.
+   ` : ''}
+
+TAG MANAGEMENT CAPABILITIES:
+- You can SUGGEST tags using: suggestTagsForContent(userId, content, resourceType, existingTagNames?)
+- You can GET OR CREATE tags using: getOrCreateUserTag(userId, tagName, color)
+- When the user creates content (notes, recordings, tasks), you can suggest relevant tags
+- Tag colors should be chosen from: #3b82f6, #ef4444, #10b981, #f59e0b, #8b5cf6, #ec4899, #06b6d4, #84cc16, #f97316, #6366f1
+- You can mention tag suggestions in your responses to help users organize their content
 
 MANDATORY INSTRUCTIONS:
-1. The notes/recordings shown above are REAL and ACCESSIBLE to you
+1. The notes/recordings/tasks shown above are REAL and ACCESSIBLE to you
 2. When the user asks "what did I write" or "what's in my notes", you MUST check the notes above
 3. Reference specific note titles (e.g., "In your note 'Transformation center', you wrote...")
 4. NEVER say "I can't access your notes" - you CAN and DO have access to them

@@ -3,19 +3,26 @@
 import { Sidebar, SidebarHeader, SidebarContent, SidebarFooter } from '@/components/ui/sidebar'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { MessageSquare, FileText, Mic, Database } from 'lucide-react'
+import { MessageSquare, FileText, Mic, Database, CheckSquare, Tag, FileStack } from 'lucide-react'
+import { GlobalSearch } from '@/components/search/global-search'
 import Link from 'next/link'
 import { DashboardStats } from '@/components/admin/dashboard-stats'
 import { MemoriesManager } from '@/components/admin/memories-manager'
 import { NotesManager } from '@/components/admin/notes-manager'
 import { RecordingsManager } from '@/components/admin/recordings-manager'
+import { TasksManager } from '@/components/admin/tasks-manager'
+import { TagsManager } from '@/components/admin/tags-manager'
+import { TemplateManager } from '@/components/templates/template-manager'
 
 export default function AdminPage() {
   return (
     <div className="flex h-screen">
       <Sidebar>
         <SidebarHeader>
-          <h1 className="text-xl font-bold">LifeOS</h1>
+          <div className="flex items-center justify-between mb-2">
+            <h1 className="text-xl font-bold">LifeOS</h1>
+            <GlobalSearch />
+          </div>
           <p className="text-xs text-muted-foreground">Admin Dashboard</p>
         </SidebarHeader>
         <SidebarContent>
@@ -36,6 +43,12 @@ export default function AdminPage() {
               <Button variant="ghost" className="w-full justify-start">
                 <Mic className="mr-2 h-4 w-4" />
                 Recordings
+              </Button>
+            </Link>
+            <Link href="/tasks">
+              <Button variant="ghost" className="w-full justify-start">
+                <CheckSquare className="mr-2 h-4 w-4" />
+                Tasks
               </Button>
             </Link>
             <Link href="/admin">
@@ -78,6 +91,18 @@ export default function AdminPage() {
                 <Mic className="mr-2 h-4 w-4" />
                 Recordings
               </TabsTrigger>
+              <TabsTrigger value="tasks">
+                <CheckSquare className="mr-2 h-4 w-4" />
+                Tasks
+              </TabsTrigger>
+              <TabsTrigger value="tags">
+                <Tag className="mr-2 h-4 w-4" />
+                Tags
+              </TabsTrigger>
+              <TabsTrigger value="templates">
+                <FileStack className="mr-2 h-4 w-4" />
+                Templates
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="memories">
@@ -90,6 +115,17 @@ export default function AdminPage() {
 
             <TabsContent value="recordings">
               <RecordingsManager />
+            </TabsContent>
+
+            <TabsContent value="tasks">
+              <TasksManager />
+            </TabsContent>
+
+            <TabsContent value="tags">
+              <TagsManager />
+            </TabsContent>
+            <TabsContent value="templates">
+              <TemplateManager />
             </TabsContent>
           </Tabs>
         </div>

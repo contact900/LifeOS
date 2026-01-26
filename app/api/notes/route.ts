@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const supabase = await createClient()
     const {
@@ -12,18 +12,40 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data, error } = await supabase
+    const { searchParams } = new URL(req.url)
+    const tagId = searchParams.get('tag_id')
+
+    let query = supabase
       .from('notes')
       .select('*')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
+
+    // If filtering by tag, join with notes_tags
+    if (tagId) {
+      query = supabase
+        .from('notes')
+        .select('*, notes_tags!inner(tag_id)')
+        .eq('user_id', user.id)
+        .eq('notes_tags.tag_id', tagId)
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false })
 
     if (error) {
       console.error('Error fetching notes:', error)
       return NextResponse.json({ error: 'Failed to fetch notes' }, { status: 500 })
     }
 
-    return NextResponse.json({ notes: data || [] })
+    // If we filtered by tag, the data structure is different, so normalize it
+    const notes = data?.map((note: any) => {
+      if (note.notes_tags) {
+        const { notes_tags, ...noteData } = note
+        return noteData
+      }
+      return note
+    }) || []
+
+    return NextResponse.json({ notes })
   } catch (error) {
     console.error('Notes API error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

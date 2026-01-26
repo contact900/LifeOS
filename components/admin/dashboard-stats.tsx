@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Database, FileText, Mic, MessageSquare, TrendingUp } from 'lucide-react'
+import { Database, FileText, Mic, MessageSquare, TrendingUp, CheckSquare } from 'lucide-react'
 
 interface Stats {
   memories: number
   notes: number
   recordings: number
+  tasks: number
   total: number
   recentActivity: number
 }
@@ -17,6 +18,7 @@ export function DashboardStats() {
     memories: 0,
     notes: 0,
     recordings: 0,
+    tasks: 0,
     total: 0,
     recentActivity: 0
   })
@@ -28,24 +30,27 @@ export function DashboardStats() {
 
   const loadStats = async () => {
     try {
-      const [memoriesRes, notesRes, recordingsRes] = await Promise.all([
+      const [memoriesRes, notesRes, recordingsRes, tasksRes] = await Promise.all([
         fetch('/api/admin/stats?type=memories'),
         fetch('/api/admin/stats?type=notes'),
         fetch('/api/admin/stats?type=recordings'),
+        fetch('/api/admin/stats?type=tasks'),
       ])
 
-      const [memories, notes, recordings] = await Promise.all([
+      const [memories, notes, recordings, tasks] = await Promise.all([
         memoriesRes.json(),
         notesRes.json(),
         recordingsRes.json(),
+        tasksRes.json(),
       ])
 
-      const total = (memories.count || 0) + (notes.count || 0) + (recordings.count || 0)
+      const total = (memories.count || 0) + (notes.count || 0) + (recordings.count || 0) + (tasks.count || 0)
       
       setStats({
         memories: memories.count || 0,
         notes: notes.count || 0,
         recordings: recordings.count || 0,
+        tasks: tasks.count || 0,
         total,
         recentActivity: memories.recent || 0
       })
@@ -76,7 +81,7 @@ export function DashboardStats() {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total Records</CardTitle>
@@ -118,6 +123,17 @@ export function DashboardStats() {
         <CardContent>
           <div className="text-2xl font-bold">{stats.recordings}</div>
           <p className="text-xs text-muted-foreground">Audio files</p>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Tasks</CardTitle>
+          <CheckSquare className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{stats.tasks}</div>
+          <p className="text-xs text-muted-foreground">To-do items</p>
         </CardContent>
       </Card>
       

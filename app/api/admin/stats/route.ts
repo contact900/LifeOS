@@ -56,6 +56,16 @@ export async function GET(req: Request) {
       return NextResponse.json({ count: count || 0 })
     }
 
+    if (type === 'tasks') {
+      const { count, error } = await supabase
+        .from('tasks')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+
+      if (error) throw error
+      return NextResponse.json({ count: count || 0 })
+    }
+
     return NextResponse.json({ error: 'Invalid type' }, { status: 400 })
   } catch (error) {
     console.error('Stats API error:', error)

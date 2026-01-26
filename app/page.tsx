@@ -2,14 +2,18 @@ import { ChatInterface } from '@/components/chat/chat-interface'
 import { Sidebar, SidebarHeader, SidebarContent, SidebarFooter } from '@/components/ui/sidebar'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { MessageSquare, FileText, Mic, Database } from 'lucide-react'
+import { MessageSquare, FileText, Mic, Database, CheckSquare } from 'lucide-react'
+import { GlobalSearch } from '@/components/search/global-search'
 
 export default function Home() {
   return (
     <div className="flex h-screen">
       <Sidebar>
         <SidebarHeader>
-          <h1 className="text-xl font-bold">LifeOS</h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-bold">LifeOS</h1>
+            <GlobalSearch />
+          </div>
         </SidebarHeader>
         <SidebarContent>
           <nav className="space-y-2">
@@ -29,6 +33,12 @@ export default function Home() {
               <Button variant="ghost" className="w-full justify-start">
                 <Mic className="mr-2 h-4 w-4" />
                 Recordings
+              </Button>
+            </Link>
+            <Link href="/tasks">
+              <Button variant="ghost" className="w-full justify-start">
+                <CheckSquare className="mr-2 h-4 w-4" />
+                Tasks
               </Button>
             </Link>
             <Link href="/admin">

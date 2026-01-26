@@ -6,9 +6,15 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Sidebar, SidebarHeader, SidebarContent, SidebarFooter } from '@/components/ui/sidebar'
-import { MessageSquare, FileText, Mic, Play, Trash2, Database } from 'lucide-react'
+import { MessageSquare, FileText, Mic, Play, Trash2, Database, CheckSquare } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { TagManager } from '@/components/tags/tag-manager'
+import { RecordingTagsPreview } from '@/components/tags/recording-tags-preview'
+import { TagFilter } from '@/components/tags/tag-filter'
+import { GlobalSearch } from '@/components/search/global-search'
+import { TemplateSelector } from '@/components/templates/template-selector'
+import { QuickTemplateButtons } from '@/components/templates/quick-template-buttons'
 
 interface Recording {
   id: string
@@ -26,13 +32,14 @@ export default function RecordingsPage() {
   const [uploading, setUploading] = useState(false)
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetchRecordings()
-  }, [])
+  const [selectedTagFilter, setSelectedTagFilter] = useState<string | null>(null)
 
   const fetchRecordings = async () => {
     try {
-      const response = await fetch('/api/recordings')
+      const url = selectedTagFilter
+        ? `/api/recordings?tag_id=${selectedTagFilter}`
+        : '/api/recordings'
+      const response = await fetch(url)
       if (response.ok) {
         const data = await response.json()
         setRecordings(data.recordings || [])
@@ -43,6 +50,14 @@ export default function RecordingsPage() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchRecordings()
+  }, [])
+
+  useEffect(() => {
+    fetchRecordings()
+  }, [selectedTagFilter])
 
   const handleRecordingComplete = async (audioBlob: Blob) => {
     setUploading(true)
@@ -129,7 +144,10 @@ export default function RecordingsPage() {
     <div className="flex h-screen">
       <Sidebar>
         <SidebarHeader>
-          <h1 className="text-xl font-bold">LifeOS</h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-bold">LifeOS</h1>
+            <GlobalSearch />
+          </div>
         </SidebarHeader>
         <SidebarContent>
           <nav className="space-y-2">
@@ -151,6 +169,12 @@ export default function RecordingsPage() {
                 Recordings
               </Button>
             </Link>
+            <Link href="/tasks">
+              <Button variant="ghost" className="w-full justify-start">
+                <CheckSquare className="mr-2 h-4 w-4" />
+                Tasks
+              </Button>
+            </Link>
             <Link href="/admin">
               <Button variant="ghost" className="w-full justify-start">
                 <Database className="mr-2 h-4 w-4" />
@@ -166,30 +190,59 @@ export default function RecordingsPage() {
         </SidebarFooter>
       </Sidebar>
       <div className="flex-1 flex flex-col">
-        <div className="border-b p-4 flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Recordings</h2>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Mic className="mr-2 h-4 w-4" />
-                New Recording
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Record Audio</DialogTitle>
-              </DialogHeader>
-              <AudioRecorder onRecordingComplete={handleRecordingComplete} />
-              {uploading && (
-                <p className="text-sm text-muted-foreground text-center">
-                  Uploading and transcribing...
-                </p>
-              )}
-            </DialogContent>
-          </Dialog>
+        <div className="border-b p-4">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-2xl font-bold">Recordings</h2>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Mic className="mr-2 h-4 w-4" />
+                  New Recording
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Record Audio</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <TemplateSelector
+                    type="recording"
+                    onSelect={(template) => {
+                      sessionStorage.setItem('recording_template', template.content_text || '')
+                    }}
+                    trigger={
+                      <Button variant="outline" className="w-full">
+                        Use Template
+                      </Button>
+                    }
+                  />
+                  <AudioRecorder onRecordingComplete={handleRecordingComplete} />
+                  {uploading && (
+                    <p className="text-sm text-muted-foreground text-center">
+                      Uploading and transcribing...
+                    </p>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+          <QuickTemplateButtons
+            type="recording"
+            onSelect={(template) => {
+              sessionStorage.setItem('recording_template', template.content_text || '')
+              setIsDialogOpen(true)
+            }}
+          />
         </div>
         <div className="flex-1 flex overflow-hidden">
           <div className="w-64 border-r p-4 overflow-y-auto">
+            <div className="mb-4">
+              <TagFilter
+                resourceType="recording"
+                selectedTagId={selectedTagFilter}
+                onTagChange={setSelectedTagFilter}
+              />
+            </div>
             {loading ? (
               <p className="text-sm text-muted-foreground">Loading recordings...</p>
             ) : recordings.length === 0 ? (
@@ -226,6 +279,9 @@ export default function RecordingsPage() {
                           {recording.summary}
                         </p>
                       )}
+                      <div className="mt-2">
+                        <RecordingTagsPreview recordingId={recording.id} />
+                      </div>
                     </CardHeader>
                   </Card>
                 ))}
@@ -240,6 +296,10 @@ export default function RecordingsPage() {
                     {new Date(selectedRecording.created_at).toLocaleString()}
                   </h3>
                 </div>
+                <TagManager
+                  resourceType="recording"
+                  resourceId={selectedRecording.id}
+                />
                 {audioUrl && (
                   <Card>
                     <CardHeader>
