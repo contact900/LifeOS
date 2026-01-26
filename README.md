@@ -14,8 +14,11 @@ A Next.js application that serves as your personal AI assistant, helping you man
 - **📝 Rich Text Notes**: Create and manage notes with Tiptap rich text editor
 - **🎤 Voice Recordings**: Record, transcribe, and analyze audio recordings with AI-powered summaries
 - **📎 File Attachments**: Attach PDFs, images, documents, and more to chat for AI analysis
-- **🔍 Smart Search**: AI can access and search through your notes, recordings, and past conversations
-- **👥 Admin Dashboard**: Comprehensive admin interface to manage all your data (memories, notes, recordings)
+- **🔍 Global Search**: Search across all notes, recordings, memories, and tasks with advanced filters (date, category, tags)
+- **🏷️ Tags & Organization**: Color-coded tags for notes, recordings, and tasks with tag-based filtering
+- **✅ Task Management**: Create, organize, and track tasks with status, priority, categories, and due dates
+- **📋 Templates**: Pre-built and custom templates for notes and recordings with quick creation
+- **👥 Admin Dashboard**: Comprehensive admin interface to manage all your data (memories, notes, recordings, tasks, tags, templates)
 - **🎯 Expert Routing**: Intelligent routing to specialized experts (Finance, Work, Health, General) based on context
 
 ## 🛠️ Tech Stack
@@ -119,20 +122,28 @@ LifeOS/
 │   │   ├── admin/           # Admin API routes
 │   │   ├── chat/            # Chat API with LangGraph agents
 │   │   ├── notes/           # Notes CRUD operations
-│   │   └── recordings/      # Recording management
+│   │   ├── recordings/      # Recording management
+│   │   ├── tasks/           # Task management API
+│   │   ├── tags/            # Tags API
+│   │   ├── templates/       # Templates API
+│   │   └── search/          # Global search API
 │   ├── notes/               # Notes page
 │   ├── recordings/          # Recordings page
+│   ├── tasks/               # Tasks page
 │   └── page.tsx             # Main chat interface
 ├── components/
 │   ├── admin/               # Admin dashboard components
 │   ├── chat/                # Chat interface components
 │   ├── notes/               # Notes editor (Tiptap)
 │   ├── recorder/            # Audio recorder component
+│   ├── search/              # Global search component
+│   ├── tags/                # Tag management components
+│   ├── templates/            # Template components
 │   └── ui/                  # Shadcn/UI components
 ├── lib/
 │   ├── agents/              # LangGraph multi-agent system
 │   │   ├── experts/         # Expert agents (Finance, Work, Health, General)
-│   │   ├── tools/           # Search tools for notes/recordings
+│   │   ├── tools/           # Search tools for notes/recordings/tasks/tags
 │   │   ├── graph.ts         # Agent workflow graph
 │   │   └── router.ts       # Intent routing
 │   ├── rag/                 # Vector search and memory management
@@ -170,6 +181,8 @@ Each expert has access to:
 - Relevant memories from their category
 - Your notes (searched by relevance)
 - Your recordings (searched by transcript/summary)
+- Your tasks (for task management and reminders)
+- Tag suggestions (AI can suggest tags for your content)
 
 ## 📝 Features in Detail
 
@@ -183,6 +196,8 @@ Each expert has access to:
 - Rich text editor with formatting (bold, italic, headings, lists)
 - Full-text search
 - Automatic saving
+- Tag support with color coding
+- Template support for quick creation
 - AI can access and reference your notes
 
 ### Recordings
@@ -190,12 +205,44 @@ Each expert has access to:
 - Automatic transcription via OpenAI Whisper
 - AI-powered summarization
 - Searchable transcripts
+- Tag support with color coding
+- Template support for structured recordings
+
+### Tasks
+- Create and manage tasks with status (todo, in_progress, done)
+- Priority levels (low, medium, high)
+- Categories (finance, work, health, general)
+- Due dates with overdue indicators
+- Tag support for organization
+- Filter by status, category, priority, and tags
+
+### Tags & Organization
+- Color-coded tags for notes, recordings, and tasks
+- Tag-based filtering across all content types
+- Custom tag colors from predefined palette
+- AI can suggest relevant tags
+- Tag management in admin dashboard
+
+### Global Search
+- Search across notes, recordings, memories, and tasks
+- Filter by type, category, tags, and date range
+- Quick access via search icon in header (⌘K / Ctrl+K)
+- Real-time search results with previews
+
+### Templates
+- Pre-built system templates (Meeting Notes, Journal Entry, Project Planning, Daily Standup, etc.)
+- Custom template creation for notes and recordings
+- Quick template buttons for fast creation
+- Template management in admin dashboard
+- Note templates with rich text structure
+- Recording templates with instructions
 
 ### Admin Dashboard
-- View all memories, notes, and recordings
+- View all memories, notes, recordings, tasks, tags, and templates
 - Search and filter functionality
-- Export data
+- Export data to CSV
 - Delete records
+- Manage tags and templates
 
 ## 🔧 Development
 
@@ -206,7 +253,11 @@ Each expert has access to:
 npx supabase migration up
 
 # Remote Supabase
-# Run the SQL from supabase/migrations/001_initial_schema.sql in your Supabase SQL editor
+# Run the SQL migrations in order:
+# 1. supabase/migrations/001_initial_schema.sql
+# 2. supabase/migrations/002_add_tasks.sql
+# 3. supabase/migrations/003_add_tags.sql
+# 4. supabase/migrations/004_add_templates.sql
 ```
 
 ### Database Schema
@@ -215,8 +266,16 @@ Key tables:
 - `memories`: Vector embeddings for chat/notes/recordings
 - `notes`: Rich text notes with Tiptap JSON
 - `recordings`: Audio recordings with transcripts and summaries
+- `tasks`: Task management with status, priority, category, and due dates
+- `tags`: User-defined tags with color coding
+- `notes_tags`, `recordings_tags`, `tasks_tags`: Junction tables for tag associations
+- `templates`: System and user-created templates for notes and recordings
 
-See `supabase/migrations/001_initial_schema.sql` for full schema.
+Migration files:
+- `001_initial_schema.sql`: Core tables (memories, notes, recordings)
+- `002_add_tasks.sql`: Task management system
+- `003_add_tags.sql`: Tags and organization system
+- `004_add_templates.sql`: Templates system
 
 ### Environment Variables
 
